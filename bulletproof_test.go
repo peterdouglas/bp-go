@@ -1,4 +1,4 @@
-package bp
+package bulletproofs
 
 import (
 	"crypto/rand"
