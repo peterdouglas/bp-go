@@ -1,4 +1,4 @@
-package bp
+package bulletproofs
 
 import (
 	"crypto/rand"
@@ -509,7 +509,7 @@ func TestInnerProduct(t *testing.T) {
 
 }
 
-/*
+
 
 func BenchmarkMRPVerifySize(b *testing.B) {
 	for i := 0; i < b.N; i++{
@@ -597,4 +597,4 @@ func BenchmarkMRPVerify32(b *testing.B) {
 	}
 	boores = r
 }
-*/
+

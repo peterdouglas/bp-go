@@ -1,4 +1,4 @@
-package bp
+package bulletproofs
 
 import (
 	"crypto/elliptic"
@@ -8,19 +8,19 @@ import (
 	"math/big"
 
 	"fmt"
-	"github.com/btcsuite/btcd/btcec"
 	"math"
 	"strconv"
+
+	"github.com/btcsuite/btcd/btcec"
 )
 
+// EC - An instance of CryptoParams
 var EC CryptoParams
+
+// VecLength - the length of the vector
 var VecLength = 64
 
-/*
-Implementation of BulletProofs
-
-*/
-
+// ECPoint - an elliptic curve point
 type ECPoint struct {
 	X, Y *big.Int
 }
@@ -53,6 +53,7 @@ func (p ECPoint) Neg() ECPoint {
 	return ECPoint{p.X, modValue}
 }
 
+// CryptoParams - the struct containing the crypto params for the rangeproofs
 type CryptoParams struct {
 	C   elliptic.Curve      // curve
 	KC  *btcec.KoblitzCurve // curve
@@ -65,6 +66,7 @@ type CryptoParams struct {
 	H   ECPoint             // H value for commitments of a single value
 }
 
+// Zero - returns a Zero ECPoint
 func (c CryptoParams) Zero() ECPoint {
 	return ECPoint{big.NewInt(0), big.NewInt(0)}
 }
@@ -75,161 +77,7 @@ func check(e error) {
 	}
 }
 
-/*
-Vector Pedersen Commitment
-
-Given an array of values, we commit the array with different generators
-for each element and for each randomness.
-*/
-func VectorPCommit(value []*big.Int) (ECPoint, []*big.Int) {
-	R := make([]*big.Int, EC.V)
-
-	commitment := EC.Zero()
-
-	for i := 0; i < EC.V; i++ {
-		r, err := rand.Int(rand.Reader, EC.N)
-		check(err)
-
-		R[i] = r
-
-		modValue := new(big.Int).Mod(value[i], EC.N)
-
-		// mG, rH
-		lhsX, lhsY := EC.C.ScalarMult(EC.BPG[i].X, EC.BPG[i].Y, modValue.Bytes())
-		rhsX, rhsY := EC.C.ScalarMult(EC.BPH[i].X, EC.BPH[i].Y, r.Bytes())
-
-		commitment = commitment.Add(ECPoint{lhsX, lhsY}).Add(ECPoint{rhsX, rhsY})
-	}
-
-	return commitment, R
-}
-
-/*
-Two Vector P Commit
-
-Given an array of values, we commit the array with different generators
-for each element and for each randomness.
-*/
-func TwoVectorPCommit(a []*big.Int, b []*big.Int) ECPoint {
-	if len(a) != len(b) {
-		fmt.Println("TwoVectorPCommit: Uh oh! Arrays not of the same length")
-		fmt.Printf("len(a): %d\n", len(a))
-		fmt.Printf("len(b): %d\n", len(b))
-	}
-
-	commitment := EC.Zero()
-
-	for i := 0; i < EC.V; i++ {
-		commitment = commitment.Add(EC.BPG[i].Mult(a[i])).Add(EC.BPH[i].Mult(b[i]))
-	}
-
-	return commitment
-}
-
-/*
-Vector Pedersen Commitment with Gens
-
-Given an array of values, we commit the array with different generators
-for each element and for each randomness.
-
-We also pass in the Generators we want to use
-*/
-func TwoVectorPCommitWithGens(G, H []ECPoint, a, b []*big.Int) ECPoint {
-	if len(G) != len(H) || len(G) != len(a) || len(a) != len(b) {
-		fmt.Println("TwoVectorPCommitWithGens: Uh oh! Arrays not of the same length")
-		fmt.Printf("len(G): %d\n", len(G))
-		fmt.Printf("len(H): %d\n", len(H))
-		fmt.Printf("len(a): %d\n", len(a))
-		fmt.Printf("len(b): %d\n", len(b))
-	}
-
-	commitment := EC.Zero()
-
-	for i := 0; i < len(G); i++ {
-		modA := new(big.Int).Mod(a[i], EC.N)
-		modB := new(big.Int).Mod(b[i], EC.N)
-
-		commitment = commitment.Add(G[i].Mult(modA)).Add(H[i].Mult(modB))
-	}
-
-	return commitment
-}
-
-// The length here always has to be a power of two
-func InnerProduct(a []*big.Int, b []*big.Int) *big.Int {
-	if len(a) != len(b) {
-		fmt.Println("InnerProduct: Uh oh! Arrays not of the same length")
-		fmt.Printf("len(a): %d\n", len(a))
-		fmt.Printf("len(b): %d\n", len(b))
-	}
-
-	c := big.NewInt(0)
-
-	for i := range a {
-		tmp1 := new(big.Int).Mul(a[i], b[i])
-		c = new(big.Int).Add(c, new(big.Int).Mod(tmp1, EC.N))
-	}
-
-	return new(big.Int).Mod(c, EC.N)
-}
-
-func VectorAdd(v []*big.Int, w []*big.Int) []*big.Int {
-	if len(v) != len(w) {
-		fmt.Println("VectorAdd: Uh oh! Arrays not of the same length")
-		fmt.Printf("len(v): %d\n", len(v))
-		fmt.Printf("len(w): %d\n", len(w))
-	}
-	result := make([]*big.Int, len(v))
-
-	for i := range v {
-		result[i] = new(big.Int).Mod(new(big.Int).Add(v[i], w[i]), EC.N)
-	}
-
-	return result
-}
-
-func VectorHadamard(v, w []*big.Int) []*big.Int {
-	if len(v) != len(w) {
-		fmt.Println("VectorHadamard: Uh oh! Arrays not of the same length")
-		fmt.Printf("len(v): %d\n", len(w))
-		fmt.Printf("len(w): %d\n", len(v))
-	}
-
-	result := make([]*big.Int, len(v))
-
-	for i := range v {
-		result[i] = new(big.Int).Mod(new(big.Int).Mul(v[i], w[i]), EC.N)
-	}
-
-	return result
-}
-
-func VectorAddScalar(v []*big.Int, s *big.Int) []*big.Int {
-	result := make([]*big.Int, len(v))
-
-	for i := range v {
-		result[i] = new(big.Int).Mod(new(big.Int).Add(v[i], s), EC.N)
-	}
-
-	return result
-}
-
-func ScalarVectorMul(v []*big.Int, s *big.Int) []*big.Int {
-	result := make([]*big.Int, len(v))
-
-	for i := range v {
-		result[i] = new(big.Int).Mod(new(big.Int).Mul(v[i], s), EC.N)
-	}
-
-	return result
-}
-
-/*
-InnerProd Proof
-
-This stores the argument values
-
-*/
+// InnerProdArg - Stores the values of the InnerProduct Arguements
 type InnerProdArg struct {
 	L []ECPoint
 	R []ECPoint
@@ -239,6 +87,7 @@ type InnerProdArg struct {
 	Challenges []*big.Int
 }
 
+// GenerateNewParams - Creates new EC Parameters to be used in the bulletproofs
 func GenerateNewParams(G, H []ECPoint, x *big.Int, L, R, P ECPoint) ([]ECPoint, []ECPoint, ECPoint) {
 	nprime := len(G) / 2
 
@@ -262,6 +111,78 @@ func GenerateNewParams(G, H []ECPoint, x *big.Int, L, R, P ECPoint) ([]ECPoint, 
 	Pprime := L.Mult(x2).Add(P).Add(R.Mult(xinv2)) // x^2 * L + P + xinv^2 * R
 
 	return Gprime, Hprime, Pprime
+}
+
+// InnerProduct - The length here always has to be a power of two
+func InnerProduct(a []*big.Int, b []*big.Int) *big.Int {
+	if len(a) != len(b) {
+		fmt.Println("InnerProduct: Uh oh! Arrays not of the same length")
+		fmt.Printf("len(a): %d\n", len(a))
+		fmt.Printf("len(b): %d\n", len(b))
+	}
+
+	c := big.NewInt(0)
+
+	for i := range a {
+		tmp1 := new(big.Int).Mul(a[i], b[i])
+		c = new(big.Int).Add(c, new(big.Int).Mod(tmp1, EC.N))
+	}
+
+	return new(big.Int).Mod(c, EC.N)
+}
+
+//VectorAdd - adds the vector arrays
+func VectorAdd(v []*big.Int, w []*big.Int) []*big.Int {
+	if len(v) != len(w) {
+		fmt.Println("VectorAdd: Uh oh! Arrays not of the same length")
+		fmt.Printf("len(v): %d\n", len(v))
+		fmt.Printf("len(w): %d\n", len(w))
+	}
+	result := make([]*big.Int, len(v))
+
+	for i := range v {
+		result[i] = new(big.Int).Mod(new(big.Int).Add(v[i], w[i]), EC.N)
+	}
+
+	return result
+}
+
+// VectorHadamard - add more details later
+func VectorHadamard(v, w []*big.Int) []*big.Int {
+	if len(v) != len(w) {
+		fmt.Println("VectorHadamard: Uh oh! Arrays not of the same length")
+		fmt.Printf("len(v): %d\n", len(w))
+		fmt.Printf("len(w): %d\n", len(v))
+	}
+
+	result := make([]*big.Int, len(v))
+
+	for i := range v {
+		result[i] = new(big.Int).Mod(new(big.Int).Mul(v[i], w[i]), EC.N)
+	}
+
+	return result
+}
+
+// VectorAddScalar - adds scalar vectors together
+func VectorAddScalar(v []*big.Int, s *big.Int) []*big.Int {
+	result := make([]*big.Int, len(v))
+
+	for i := range v {
+		result[i] = new(big.Int).Mod(new(big.Int).Add(v[i], s), EC.N)
+	}
+
+	return result
+}
+
+func ScalarVectorMul(v []*big.Int, s *big.Int) []*big.Int {
+	result := make([]*big.Int, len(v))
+
+	for i := range v {
+		result[i] = new(big.Int).Mod(new(big.Int).Mul(v[i], s), EC.N)
+	}
+
+	return result
 }
 
 /* Inner Product Argument
@@ -366,7 +287,7 @@ func InnerProductVerify(c *big.Int, P, U ECPoint, G, H []ECPoint, ipp InnerProdA
 		return false
 	}
 
-	curIt -= 1
+	curIt--
 
 	Gprime := G
 	Hprime := H
@@ -390,7 +311,7 @@ func InnerProductVerify(c *big.Int, P, U ECPoint, G, H []ECPoint, ipp InnerProdA
 		}
 
 		Gprime, Hprime, Pprime = GenerateNewParams(Gprime, Hprime, chal2, Lval, Rval, Pprime)
-		curIt -= 1
+		curIt--
 	}
 	ccalc := new(big.Int).Mod(new(big.Int).Mul(ipp.A, ipp.B), EC.N)
 
@@ -446,7 +367,7 @@ func InnerProductVerifyFast(c *big.Int, P, U ECPoint, G, H []ECPoint, ipp InnerP
 	}
 	// begin computing
 
-	curIt -= 1
+	curIt--
 	Pprime := P.Add(ux.Mult(c)) // line 6 from protocol 1
 
 	tmp1 := EC.Zero()
@@ -701,19 +622,19 @@ func RPProve(v *big.Int) RangeProof {
 	// need to generate l(X), r(X), and t(X)=<l(X),r(X)>
 
 	/*
-		Java code on how to calculate t1 and t2
+			Java code on how to calculate t1 and t2
 
-			FieldVector ys = FieldVector.from(VectorX.iterate(n, BigInteger.ONE, y::multiply),q); //powers of y
-		    FieldVector l0 = aL.add(z.negate());
-	        FieldVector l1 = sL;
-	        FieldVector twoTimesZSquared = twos.times(zSquared);
-	        FieldVector r0 = ys.hadamard(aR.add(z)).add(twoTimesZSquared);
-	        FieldVector r1 = sR.hadamard(ys);
-	        BigInteger k = ys.sum().multiply(z.subtract(zSquared)).subtract(zCubed.shiftLeft(n).subtract(zCubed));
-	        BigInteger t0 = k.add(zSquared.multiply(number));
-	        BigInteger t1 = l1.innerPoduct(r0).add(l0.innerPoduct(r1));
-	        BigInteger t2 = l1.innerPoduct(r1);
-	   		PolyCommitment<T> polyCommitment = PolyCommitment.from(base, t0, VectorX.of(t1, t2));
+				FieldVector ys = FieldVector.from(VectorX.iterate(n, BigInteger.ONE, y::multiply),q); //powers of y
+			    FieldVector l0 = aL.add(z.negate());
+		        FieldVector l1 = sL;
+		        FieldVector twoTimesZSquared = twos.times(zSquared);
+		        FieldVector r0 = ys.hadamard(aR.add(z)).add(twoTimesZSquared);
+		        FieldVector r1 = sR.hadamard(ys);
+		        BigInteger k = ys.sum().multiply(z.subtract(zSquared)).subtract(zCubed.shiftLeft(n).subtract(zCubed));
+		        BigInteger t0 = k.add(zSquared.multiply(number));
+		        BigInteger t1 = l1.innerPoduct(r0).add(l0.innerPoduct(r1));
+		        BigInteger t2 = l1.innerPoduct(r1);
+		   		PolyCommitment<T> polyCommitment = PolyCommitment.from(base, t0, VectorX.of(t1, t2));
 
 
 	*/
@@ -1066,23 +987,23 @@ func MRPProve(values []*big.Int) MultiRangeProof {
 	// need to generate l(X), r(X), and t(X)=<l(X),r(X)>
 
 	/*
-		Java code on how to calculate t1 and t2
+			Java code on how to calculate t1 and t2
 
-	        //z^Q
-	        FieldVector zs = FieldVector.from(VectorX.iterate(m, z.pow(2), z::multiply).map(bi -> bi.mod(q)), q);
-	        //2^n
-	        VectorX<BigInteger> twoVector = VectorX.iterate(bitsPerNumber, BigInteger.ONE, bi -> bi.shiftLeft(1));
-	        FieldVector twos = FieldVector.from(twoVector, q);
-	        //2^n \cdot z || 2^n \cdot z^2 ...
-	        FieldVector twoTimesZs = FieldVector.from(zs.getVector().flatMap(twos::times), q);
-	        //l(X)
-	        FieldVector l0 = aL.add(z.negate());
-	        FieldVector l1 = sL;
-	        FieldVectorPolynomial lPoly = new FieldVectorPolynomial(l0, l1);
-	        //r(X)
-	        FieldVector r0 = ys.hadamard(aR.add(z)).add(twoTimesZs);
-	        FieldVector r1 = sR.hadamard(ys);
-			FieldVectorPolynomial rPoly = new FieldVectorPolynomial(r0, r1);
+		        //z^Q
+		        FieldVector zs = FieldVector.from(VectorX.iterate(m, z.pow(2), z::multiply).map(bi -> bi.mod(q)), q);
+		        //2^n
+		        VectorX<BigInteger> twoVector = VectorX.iterate(bitsPerNumber, BigInteger.ONE, bi -> bi.shiftLeft(1));
+		        FieldVector twos = FieldVector.from(twoVector, q);
+		        //2^n \cdot z || 2^n \cdot z^2 ...
+		        FieldVector twoTimesZs = FieldVector.from(zs.getVector().flatMap(twos::times), q);
+		        //l(X)
+		        FieldVector l0 = aL.add(z.negate());
+		        FieldVector l1 = sL;
+		        FieldVectorPolynomial lPoly = new FieldVectorPolynomial(l0, l1);
+		        //r(X)
+		        FieldVector r0 = ys.hadamard(aR.add(z)).add(twoTimesZs);
+		        FieldVector r1 = sR.hadamard(ys);
+				FieldVectorPolynomial rPoly = new FieldVectorPolynomial(r0, r1);
 
 	*/
 	PowerOfCY := PowerVector(EC.V, cy)
@@ -1315,9 +1236,9 @@ func NewECPrimeGroupKey(n int) CryptoParams {
 					//fmt.Println("new H value")
 				}
 			}
-			confirmed += 1
+			confirmed++
 		}
-		j += 1
+		j++
 	}
 
 	return CryptoParams{
