@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+	"github.com/decred/dcrd/dcrec/secp256k1"
+	"github.com/davecgh/go-spew/spew"
+	"encoding/json"
 )
 
 func TestInnerProductProveLen1(t *testing.T) {
@@ -15,7 +18,7 @@ func TestInnerProductProveLen1(t *testing.T) {
 
 	a[0] = big.NewInt(2)
 
-	b[0] = big.NewInt(2)
+	b[0] = big.NewInt(-4)
 
 	c := InnerProduct(a, b)
 
@@ -283,6 +286,7 @@ func TestValueBreakdown(t *testing.T) {
 	vec2 := PowerVector(64, big.NewInt(2))
 
 	calc := InnerProduct(yes, vec2)
+	spew.Dump(yes)
 
 	if v.Cmp(calc) != 0 {
 		t.Error("Binary Value Breakdown - Failure :(")
@@ -291,9 +295,9 @@ func TestValueBreakdown(t *testing.T) {
 		fmt.Println(calc)
 	} else {
 		fmt.Println("Binary Value Breakdown - Success!")
-		//fmt.Println(yes)
-		//fmt.Println(vec2)
-		//fmt.Println(calc)
+		fmt.Println(yes)
+		fmt.Println(vec2)
+		fmt.Println(calc)
 	}
 }
 
@@ -341,10 +345,38 @@ func TestVectorHadamard(t *testing.T) {
 	}
 }
 
-func TestRPVerify1(t *testing.T) {
+func TestRPVerifyTrans1(t *testing.T) {
 	EC = NewECPrimeGroupKey(64)
+	// create the private keys
+	aliceSK, _ := secp256k1.GeneratePrivateKey()
+	bobSK, _ := secp256k1.GeneratePrivateKey()
+
+	// gen public keys
+	alicePkx, alicePky := aliceSK.Public()
+	bobPkx, bobPky := bobSK.Public()
+
+	valArr := make([]*big.Int, 4)
+	valArr[0] = big.NewInt(6)
+	valArr[1] = big.NewInt(7)
+	valArr[2] = big.NewInt(4)
+	valArr[3] = big.NewInt(0)
+
+	alicePk := secp256k1.NewPublicKey(alicePkx, alicePky)
+	bobPk := secp256k1.NewPublicKey(bobPkx, bobPky)
+
+	sharedSec := secp256k1.GenerateSharedSecret(aliceSK, bobPk)
+	secInt := new(big.Int)
+	secInt.SetBytes(sharedSec)
+	scc := spew.NewDefaultConfig()
+	scc.DisablePointerAddresses = true
+	scc.DisableCapacities = true
+	scc.SpewKeys = true
+
 	// Testing smallest number in range
-	if RPVerify(RPProve(big.NewInt(0))) {
+	rp := MRPProveTrans(alicePk, valArr, secInt)
+	jRp, _ := json.Marshal(rp)
+	scc.Dump(jRp)
+	if MRPVerify(rp) {
 		fmt.Println("Range Proof Verification works")
 	} else {
 		t.Error("*****Range Proof FAILURE")
@@ -456,33 +488,6 @@ func TestMultiRPVerify4(t *testing.T) {
 	}
 }
 
-func TestVectorPCommit3(t *testing.T) {
-	fmt.Println("TestVectorPCommit3")
-	EC = NewECPrimeGroupKey(3)
-
-	v := make([]*big.Int, 3)
-	for j := range v {
-		v[j] = big.NewInt(2)
-	}
-
-	output, r := VectorPCommit(v)
-
-	if len(r) != 3 {
-		fmt.Println("Failure - rvalues doesn't match length of values")
-	}
-	// we will verify correctness by replicating locally and comparing output
-
-	GVal := EC.BPG[0].Mult(v[0]).Add(EC.BPG[1].Mult(v[1]).Add(EC.BPG[2].Mult(v[2])))
-	HVal := EC.BPH[0].Mult(r[0]).Add(EC.BPH[1].Mult(r[1]).Add(EC.BPH[2].Mult(r[2])))
-	Comm := GVal.Add(HVal)
-
-	if output.Equal(Comm) {
-		fmt.Println("Commitment correct")
-	} else {
-		t.Error("Commitment failed")
-	}
-}
-
 func TestInnerProduct(t *testing.T) {
 	fmt.Println("TestInnerProduct")
 	a := make([]*big.Int, 4)
@@ -523,7 +528,7 @@ func BenchmarkMRPVerifySize(b *testing.B) {
 			// Testing smallest number in range
 			proof := MRPProve(values)
 			proofString := fmt.Sprintf("%s", proof)
-			//fmt.Println(proofString)
+			fmt.Println(proofString)
 			fmt.Printf("Size for %d values: %d bytes\n", j, len(proofString)) // length is good measure of bytes, correct?
 
 			if MRPVerify(proof) {

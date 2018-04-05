@@ -2,12 +2,23 @@ package bulletproofs
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"fmt"
 	"math/big"
+
+	"github.com/decred/dcrd/dcrec/secp256k1"
 )
 
+// Commitment - this contains the details for each commitment
+type Commitment struct {
+	Comm ECPoint
+	// encrypted values
+	EncValue []byte
+	Blind    *big.Int
+}
+
 /*
-Vector Pedersen Commitment
+VectorPCommit - Vector Pedersen Commit
 
 Given an array of values, we commit the array with different generators
 for each element and for each randomness.
@@ -36,7 +47,7 @@ func VectorPCommit(value []*big.Int) (ECPoint, []*big.Int) {
 }
 
 /*
-Two Vector P Commit
+TwoVectorPCommit - Two Vector P Commit
 
 Given an array of values, we commit the array with different generators
 for each element and for each randomness.
@@ -58,7 +69,7 @@ func TwoVectorPCommit(a []*big.Int, b []*big.Int) ECPoint {
 }
 
 /*
-Vector Pedersen Commitment with Gens
+TwoVectorPCommitWithGens - Vector Pedersen Commitment with Gens
 
 Given an array of values, we commit the array with different generators
 for each element and for each randomness.
@@ -84,4 +95,40 @@ func TwoVectorPCommitWithGens(G, H []ECPoint, a, b []*big.Int) ECPoint {
 	}
 
 	return commitment
+}
+
+/*
+VectorPCommitTrans -Vector Pedersen Commit with Gens and BF
+This modified method is to be used with input and output transactions
+*/
+func VectorPCommitTrans(pubkey *secp256k1.PublicKey, value []*big.Int, sSecret *big.Int) (ECPoint, []*big.Int, [][]byte) {
+	R := make([]*big.Int, EC.V)
+
+	commitment := EC.Zero()
+
+	encValues := make([][]byte, EC.V)
+
+	for i := 0; i < EC.V; i++ {
+		hash := sha256.Sum256(value[i].Bytes())
+		r := secp256k1.NonceRFC6979(sSecret, hash[:], nil, nil)
+
+		R[i] = r
+
+		// create the encrypted hash
+		fmt.Printf("values are %s\n", value[i])
+		ciphertext, err := secp256k1.Encrypt(pubkey, []byte(value[i].String()))
+		check(err)
+
+		encValues[i] = ciphertext
+
+		modValue := new(big.Int).Mod(value[i], EC.N)
+
+		// mG, rH
+		lhsX, lhsY := EC.C.ScalarMult(EC.BPG[i].X, EC.BPG[i].Y, modValue.Bytes())
+		rhsX, rhsY := EC.C.ScalarMult(EC.BPH[i].X, EC.BPH[i].Y, r.Bytes())
+
+		commitment = commitment.Add(ECPoint{lhsX, lhsY}).Add(ECPoint{rhsX, rhsY})
+	}
+
+	return commitment, R, encValues
 }
