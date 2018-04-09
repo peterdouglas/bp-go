@@ -19,7 +19,7 @@ func checkErr(err error) {
 }
 
 func TestCommitments(t *testing.T) {
-	privKey, err := secp256k1.GeneratePrivateKey()
+	privKey, err := secp256k1.GeneratePrivateKey(secp256k1.S256())
 	checkErr(err)
 
 	hash := sha256.Sum256([]byte("6"))

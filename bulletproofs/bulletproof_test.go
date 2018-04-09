@@ -7,7 +7,9 @@ import (
 	"testing"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/davecgh/go-spew/spew"
-	"encoding/json"
+
+	"os"
+	"log"
 )
 
 func TestInnerProductProveLen1(t *testing.T) {
@@ -348,8 +350,8 @@ func TestVectorHadamard(t *testing.T) {
 func TestRPVerifyTrans1(t *testing.T) {
 	EC = NewECPrimeGroupKey(64)
 	// create the private keys
-	aliceSK, _ := secp256k1.GeneratePrivateKey()
-	bobSK, _ := secp256k1.GeneratePrivateKey()
+	aliceSK, _ := secp256k1.GeneratePrivateKey(secp256k1.S256())
+	bobSK, _ := secp256k1.GeneratePrivateKey(secp256k1.S256())
 
 	// gen public keys
 	alicePkx, alicePky := aliceSK.Public()
@@ -361,24 +363,25 @@ func TestRPVerifyTrans1(t *testing.T) {
 	valArr[2] = big.NewInt(4)
 	valArr[3] = big.NewInt(0)
 
-	alicePk := secp256k1.NewPublicKey(alicePkx, alicePky)
-	bobPk := secp256k1.NewPublicKey(bobPkx, bobPky)
+	alicePk := secp256k1.NewPublicKey(secp256k1.S256(), alicePkx, alicePky)
+	bobPk := secp256k1.NewPublicKey(secp256k1.S256(), bobPkx, bobPky)
+	mrp := PrepareTransaction(aliceSK, bobPk, alicePk, valArr)
+	nMbp, err := mrp.serialize()
+	if err != nil {
+		log.Fatal("Serialization error")
+	}
 
-	sharedSec := secp256k1.GenerateSharedSecret(aliceSK, bobPk)
-	secInt := new(big.Int)
-	secInt.SetBytes(sharedSec)
-	scc := spew.NewDefaultConfig()
-	scc.DisablePointerAddresses = true
-	scc.DisableCapacities = true
-	scc.SpewKeys = true
+	rebuiltMP := MultiRangeProof{}
 
-	// Testing smallest number in range
-	rp := MRPProveTrans(alicePk, valArr, secInt)
-	jRp, _ := json.Marshal(rp)
-	scc.Dump(jRp)
-	if MRPVerify(rp) {
+	rebuiltMP.rebuild(nMbp)
+
+	if MRPVerify(rebuiltMP) {
 		fmt.Println("Range Proof Verification works")
 	} else {
+		f, _ := os.Create("./mrp_file.txt")
+		defer f.Close()
+
+		spew.Fdump(f, mrp)
 		t.Error("*****Range Proof FAILURE")
 	}
 }

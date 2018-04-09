@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package pb;
+
+message Commitment {
+    bytes EncValue = 1;
+    bytes Blind = 2;
+    bytes X = 3;
+    bytes Y = 4;
+}
+
+message ECPoint {
+    bytes X = 1;
+    bytes Y = 2;
+}
+
+message InnerProductProof {
+    repeated ECPoint L = 1;
+    repeated ECPoint R = 2;
+    string A = 3;
+    string B = 4;
+    repeated string Challenges = 5;
+}
+
+message RangeProof {
+    Commitment Comm = 1;
+    ECPoint A = 2;
+    ECPoint S = 3;
+    ECPoint T1 = 4;
+    ECPoint T2 = 5;
+    string Tau = 6;
+    string Th = 7;
+    string Mu = 8;
+    InnerProductProof IPP = 9;
+    // Challenges
+    string Cy = 10;
+    string Cz = 11;
+    string Cx = 12;
+
+}
+
+message MultiRangeProof {
+    repeated Commitment Comm = 1;
+    ECPoint A = 2;
+    ECPoint S = 3;
+    ECPoint T1 = 4;
+    ECPoint T2 = 5;
+    repeated ECPoint BPG = 6;
+    repeated ECPoint BPH = 7;
+    string Tau = 8;
+    string Th = 9;
+    string Mu = 10;
+    InnerProductProof IPP = 11;
+    // Challenges
+    string Cy = 12;
+    string Cz = 13;
+    string Cx = 14;
+
+}

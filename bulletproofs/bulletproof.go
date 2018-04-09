@@ -334,8 +334,8 @@ Given a inner product proof, verifies the correctness of the proof. Does the sam
 we replace n separate exponentiations with a single multi-exponentiation.
 */
 func InnerProductVerifyFast(c *big.Int, P, U ECPoint, G, H []ECPoint, ipp InnerProdArg) bool {
-	//fmt.Println("Verifying Inner Product Argument")
-	//fmt.Printf("Commitment Value: %s \n", P)
+	fmt.Println("Verifying Inner Product Argument")
+	fmt.Printf("Commitment Value: %s \n", P)
 	s1 := sha256.Sum256([]byte(P.X.String() + P.Y.String()))
 	chal1 := new(big.Int).SetBytes(s1[:])
 	ux := U.Mult(chal1)
