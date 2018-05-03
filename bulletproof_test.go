@@ -1,4 +1,4 @@
-package bulletproofs
+package bp_go
 
 import (
 	"crypto/rand"
@@ -7,8 +7,10 @@ import (
 	"testing"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/davecgh/go-spew/spew"
-
+	"github.com/decred/base58"
 	"os"
+	"bytes"
+	"encoding/gob"
 	"log"
 )
 
@@ -347,11 +349,65 @@ func TestVectorHadamard(t *testing.T) {
 	}
 }
 
-func TestRPVerifyTrans1(t *testing.T) {
+var (
+	aliceSK *secp256k1.PrivateKey
+	bobSK *secp256k1.PrivateKey
+	alicePk *secp256k1.PublicKey
+	bobPk *secp256k1.PublicKey
+)
+
+func TestMain(m *testing.M) {
+	// create the private keys
+	aliceSK, _ = secp256k1.GeneratePrivateKey()
+	bobSK, _ = secp256k1.GeneratePrivateKey()
+
+	// gen public keys
+	alicePkx, alicePky := aliceSK.Public()
+	bobPkx, bobPky := bobSK.Public()
+
+	alicePk = secp256k1.NewPublicKey(alicePkx, alicePky)
+	bobPk = secp256k1.NewPublicKey(bobPkx, bobPky)
+
+	os.Exit(m.Run())
+}
+
+/*func TestRPVerifyTransWithRebuild(t *testing.T) {
+	EC = NewECPrimeGroupKey(256)
+
+	valArr := make([]*big.Int, 4)
+	valArr[0] = big.NewInt(100000000000000)
+	valArr[1] = big.NewInt(7)
+	valArr[2] = big.NewInt(4)
+	valArr[3] = big.NewInt(0)
+
+
+	mrp, commitments := PrepareTransaction(aliceSK, bobPk, alicePk, valArr)
+	nMbp, err := mrp.Serialize()
+	if err != nil {
+		log.Fatal("Serialization error")
+	}
+	spew.Dump(nMbp)
+	rebuiltMP := MultiRangeProof{}
+
+	rebuiltMP.Rebuild(nMbp)
+
+	if MRPVerify(rebuiltMP, commitments) {
+		fmt.Println("Range Proof Verification works")
+	} else {
+		f, _ := os.Create("./mrp_file.txt")
+		defer f.Close()
+
+		spew.Fdump(f, mrp)
+		t.Error("*****Range Proof FAILURE")
+	}
+
+}
+
+func TestMRPVerifyTransWithReceiverConf(t *testing.T) {
 	EC = NewECPrimeGroupKey(64)
 	// create the private keys
-	aliceSK, _ := secp256k1.GeneratePrivateKey(secp256k1.S256())
-	bobSK, _ := secp256k1.GeneratePrivateKey(secp256k1.S256())
+	aliceSK, _ := secp256k1.GeneratePrivateKey()
+	bobSK, _ := secp256k1.GeneratePrivateKey()
 
 	// gen public keys
 	alicePkx, alicePky := aliceSK.Public()
@@ -363,29 +419,171 @@ func TestRPVerifyTrans1(t *testing.T) {
 	valArr[2] = big.NewInt(4)
 	valArr[3] = big.NewInt(0)
 
-	alicePk := secp256k1.NewPublicKey(secp256k1.S256(), alicePkx, alicePky)
-	bobPk := secp256k1.NewPublicKey(secp256k1.S256(), bobPkx, bobPky)
-	mrp := PrepareTransaction(aliceSK, bobPk, alicePk, valArr)
-	nMbp, err := mrp.serialize()
-	if err != nil {
-		log.Fatal("Serialization error")
-	}
-
-	rebuiltMP := MultiRangeProof{}
-
-	rebuiltMP.rebuild(nMbp)
-
-	if MRPVerify(rebuiltMP) {
+	alicePk := secp256k1.NewPublicKey(alicePkx, alicePky)
+	bobPk := secp256k1.NewPublicKey(bobPkx, bobPky)
+	mrp, commitments := PrepareTransaction(aliceSK, bobPk, alicePk, valArr)
+	strMP, _ := mrp.Serialize()
+	strconv.Atoi(strMP)
+	if MRPVerify(mrp, commitments) {
 		fmt.Println("Range Proof Verification works")
 	} else {
-		f, _ := os.Create("./mrp_file.txt")
+		t.Error("*****Range Proof FAILURE")
+	}
+
+	f, _ := os.Create("./mrp_file.txt")
 		defer f.Close()
 
-		spew.Fdump(f, mrp)
+		spew.Fdump(f, strMP)
+
+
+	}*/
+
+func GetRPTrytes(rp []byte) string {
+	basePro := base58.Encode(rp)
+	return string(basePro)
+}
+
+
+func TestRPVerifyTransWithReceiverConf(t *testing.T) {
+	EC = NewECPrimeGroupKey(64)
+	// create the private keys
+	aliceSK, _ := secp256k1.GeneratePrivateKey()
+	bobSK, _ := secp256k1.GeneratePrivateKey()
+
+	// gen public keys
+	bobPkx, bobPky := bobSK.Public()
+
+	val := big.NewInt(1779530283000000)
+
+	bobPk := secp256k1.NewPublicKey(bobPkx, bobPky)
+
+	// first we generate the shared secret
+	sharedSec := secp256k1.GenerateSharedSecret(aliceSK, bobPk)
+	secInt := new(big.Int)
+	secInt.SetBytes(sharedSec)
+	comm1 := new(Commitment)
+	err := comm1.Generate(bobPk, val, secInt)
+	if err != nil {
+		t.Error(err)
+	}
+	rp := RPProveTrans(comm1.Blind, val)
+	rpBytes := rp.Bytes()
+	fmt.Printf("Byte length is %v\n", len(rpBytes))
+	serRP, _ := rp.Serialize()
+	//strT := GetRPTrytes(serRP)
+	fmt.Printf("The length of the serialized range proof in bytes is %v\n", len([]byte(serRP)))
+	rpb := &RangeProof{}
+
+	fmt.Printf("%v\nThe length of the proof in Trytes is %v\n", serRP, len(serRP))
+	rpb.Rebuild(serRP)
+	fmt.Println(len(rp.IPP.Challenges) + len(rp.IPP.L) + len(rp.IPP.R))
+	if RPVerifyTrans(&comm1.Comm, rpb) {
+		fmt.Println("Range Proof Verification works")
+	} else {
 		t.Error("*****Range Proof FAILURE")
+	}
+
+	f, _ := os.Create("./rp_file.txt")
+	defer f.Close()
+
+	spew.Fdump(f, serRP)
+
+
+}
+
+func TestRangeProof_Bytes(t *testing.T) {
+	EC = NewECPrimeGroupKey(64)
+	// create the private keys
+	aliceSK, _ := secp256k1.GeneratePrivateKey()
+	bobSK, _ := secp256k1.GeneratePrivateKey()
+
+	// gen public keys
+	bobPkx, bobPky := bobSK.Public()
+	for i := 1; i <  1779530283000000; i = i + 100 {
+
+		val := big.NewInt(int64(i))
+
+		bobPk := secp256k1.NewPublicKey(bobPkx, bobPky)
+
+		// first we generate the shared secret
+		sharedSec := secp256k1.GenerateSharedSecret(aliceSK, bobPk)
+		secInt := new(big.Int)
+		secInt.SetBytes(sharedSec)
+		comm1 := new(Commitment)
+		err := comm1.Generate(bobPk, val, secInt)
+		if err != nil {
+			t.Error(err)
+		}
+		rp := RPProveTrans(comm1.Blind, val)
+		rpBytes, _ := rp.Serialize()
+		/*if len(rp.Bytes()) != 1008 {
+			spew.Dump(rp)
+			break
+		}*/
+		fmt.Printf("Byte length for %v is %v\n",i, len(rpBytes))
 	}
 }
 
+func TestRangeProof_BytesFunc(t *testing.T) {
+	EC = NewECPrimeGroupKey(64)
+	// create the private keys
+	aliceSK, _ := secp256k1.GeneratePrivateKey()
+	bobSK, _ := secp256k1.GeneratePrivateKey()
+
+	// gen public keys
+	bobPkx, bobPky := bobSK.Public()
+
+	val := big.NewInt(10000090000)
+
+	bobPk := secp256k1.NewPublicKey(bobPkx, bobPky)
+
+	// first we generate the shared secret
+	sharedSec := secp256k1.GenerateSharedSecret(aliceSK, bobPk)
+	secInt := new(big.Int)
+	secInt.SetBytes(sharedSec)
+	comm1 := new(Commitment)
+	err := comm1.Generate(bobPk, val, secInt)
+	if err != nil {
+		t.Error(err)
+	}
+	rp := RPProveTrans(comm1.Blind, val)
+	var network bytes.Buffer
+	enc := gob.NewEncoder(&network)
+	dec := gob.NewDecoder(&network)
+	err = enc.Encode(rp)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("The length is %v\n", network.Len())
+	var rebRp RangeProof
+	err = dec.Decode(&rebRp)
+	if err != nil {
+		t.Error(err)
+	}
+
+	//rebuiltRp := &RangeProof{}
+	//rebuiltRp.RebuildBytes(rpBytes)
+
+	if RPVerifyTrans(&comm1.Comm, &rebRp) {
+		fmt.Println("Range Proof Verification works")
+	} else {
+	t.Error("*****Range Proof FAILURE")
+	}
+}
+
+func TestRangeProofMax(t *testing.T) {
+	for i := 1; i <= 128; i ++ {
+		EC = NewECPrimeGroupKey(i)
+		maxVal := new(big.Int).Exp(big.NewInt(2), big.NewInt(int64(EC.V)), EC.N)
+		//fmt.Printf("The max val for %v is %v\n", i, maxVal)
+		if maxVal.Cmp(big.NewInt(1779530283000000)) >= 1 {
+			fmt.Printf("The mimimum is %v\n", i)
+			break;
+		}
+	}
+}
+
+/*
 func TestRPVerify2(t *testing.T) {
 	EC = NewECPrimeGroupKey(64)
 	// Testing largest number in range
@@ -435,12 +633,12 @@ func TestMultiRPVerify1(t *testing.T) {
 	values := []*big.Int{big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0)}
 	EC = NewECPrimeGroupKey(64 * len(values))
 	// Testing smallest number in range
-	proof := MRPProve(values)
+	proof, commitments := PrepareTransaction(aliceSK, bobPk, alicePk, values)
 	proofString := fmt.Sprintf("%s", proof)
 
 	fmt.Println(len(proofString)) // length is good measure of bytes, correct?
 
-	if MRPVerify(proof) {
+	if MRPVerify(proof, commitments) {
 		fmt.Println("Multi Range Proof Verification works")
 	} else {
 		t.Error("***** Multi Range Proof FAILURE")
@@ -451,7 +649,7 @@ func TestMultiRPVerify2(t *testing.T) {
 	values := []*big.Int{big.NewInt(0)}
 	EC = NewECPrimeGroupKey(64 * len(values))
 	// Testing smallest number in range
-	if MRPVerify(MRPProve(values)) {
+	if MRPVerify(PrepareTransaction(aliceSK, bobPk, alicePk, values)) {
 		fmt.Println("Multi Range Proof Verification works")
 	} else {
 		t.Error("***** Multi Range Proof FAILURE")
@@ -469,6 +667,8 @@ func TestMultiRPVerify3(t *testing.T) {
 	}
 }
 
+/*
+ Still need to add testing for just the MPProve module without the components
 func TestMultiRPVerify4(t *testing.T) {
 	for j := 1; j < 33; j = 2 * j {
 		values := make([]*big.Int, j)
@@ -605,4 +805,4 @@ func BenchmarkMRPVerify32(b *testing.B) {
 	}
 	boores = r
 }
-
+*/

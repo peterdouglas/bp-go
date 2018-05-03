@@ -1,4 +1,4 @@
-package bulletproofs
+package bp_go
 
 import (
 	"crypto/sha256"
@@ -19,7 +19,7 @@ func checkErr(err error) {
 }
 
 func TestCommitments(t *testing.T) {
-	privKey, err := secp256k1.GeneratePrivateKey(secp256k1.S256())
+	privKey, err := secp256k1.GeneratePrivateKey()
 	checkErr(err)
 
 	hash := sha256.Sum256([]byte("6"))
@@ -54,6 +54,13 @@ func TestVectorPCommit(t *testing.T) {
 		fmt.Println("Commitment correct")
 	} else {
 		t.Error("Commitment failed")
+	}
+
+	testKey := secp256k1.NewPublicKey(output.X, output.Y)
+	if testKey.X.Cmp(output.X) != 0 {
+		t.Error("Keys did not match")
+	} else {
+		fmt.Printf("They match! %s\n%s\n%s\n%s\n", testKey.X, output.X, testKey.Y, output.Y)
 	}
 }
 
