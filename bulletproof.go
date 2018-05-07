@@ -643,12 +643,9 @@ func RPProve(v *big.Int) RangeProof {
 	chal1s256 := sha256.Sum256([]byte(A.X.String() + A.Y.String()))
 	cy := new(big.Int).SetBytes(chal1s256[:])
 
-	rpresult.Cy = cy
-
 	chal2s256 := sha256.Sum256([]byte(S.X.String() + S.Y.String()))
 	cz := new(big.Int).SetBytes(chal2s256[:])
 
-	rpresult.Cz = cz
 	z2 := new(big.Int).Exp(cz, big.NewInt(2), EC.N)
 	// need to generate l(X), r(X), and t(X)=<l(X),r(X)>
 
@@ -702,8 +699,6 @@ func RPProve(v *big.Int) RangeProof {
 
 	chal3s256 := sha256.Sum256([]byte(T1.X.String() + T1.Y.String() + T2.X.String() + T2.Y.String()))
 	cx := new(big.Int).SetBytes(chal3s256[:])
-
-	rpresult.Cx = cx
 
 	left := CalculateL(aL, sL, cz, cx)
 	right := CalculateR(aR, sR, PowerOfCY, PowerOfTwos, cz, cx)
@@ -815,12 +810,9 @@ func RPProveTrans(gamma *big.Int, v *big.Int) RangeProof {
 	chal1s256 := sha256.Sum256([]byte(A.X.String() + A.Y.String()))
 	cy := new(big.Int).SetBytes(chal1s256[:])
 
-	rpresult.Cy = cy
-
 	chal2s256 := sha256.Sum256([]byte(S.X.String() + S.Y.String()))
 	cz := new(big.Int).SetBytes(chal2s256[:])
 
-	rpresult.Cz = cz
 	z2 := new(big.Int).Exp(cz, big.NewInt(2), EC.N)
 	// need to generate l(X), r(X), and t(X)=<l(X),r(X)>
 
@@ -875,8 +867,6 @@ func RPProveTrans(gamma *big.Int, v *big.Int) RangeProof {
 	chal3s256 := sha256.Sum256([]byte(T1.X.String() + T1.Y.String() + T2.X.String() + T2.Y.String()))
 	cx := new(big.Int).SetBytes(chal3s256[:])
 
-	rpresult.Cx = cx
-
 	left := CalculateL(aL, sL, cz, cx)
 	right := CalculateR(aR, sR, PowerOfCY, PowerOfTwos, cz, cx)
 
@@ -926,26 +916,15 @@ func RPProveTrans(gamma *big.Int, v *big.Int) RangeProof {
 }
 
 func RPVerify(rp RangeProof) bool {
-	// verify the challenges
+	// create the challenge variables
 	chal1s256 := sha256.Sum256([]byte(rp.A.X.String() + rp.A.Y.String()))
 	cy := new(big.Int).SetBytes(chal1s256[:])
-	if cy.Cmp(rp.Cy) != 0 {
-		fmt.Println("RPVerify - Challenge Cy failing!")
-		return false
-		return false
-	}
+
 	chal2s256 := sha256.Sum256([]byte(rp.S.X.String() + rp.S.Y.String()))
 	cz := new(big.Int).SetBytes(chal2s256[:])
-	if cz.Cmp(rp.Cz) != 0 {
-		fmt.Println("RPVerify - Challenge Cz failing!")
-		return false
-	}
+
 	chal3s256 := sha256.Sum256([]byte(rp.T1.X.String() + rp.T1.Y.String() + rp.T2.X.String() + rp.T2.Y.String()))
 	cx := new(big.Int).SetBytes(chal3s256[:])
-	if cx.Cmp(rp.Cx) != 0 {
-		fmt.Println("RPVerify - Challenge Cx failing!")
-		return false
-	}
 
 	// given challenges are correct, very range proof
 	PowersOfY := PowerVector(EC.V, cy)
@@ -1002,25 +981,15 @@ func RPVerify(rp RangeProof) bool {
 }
 
 func RPVerifyTrans(comm *ECPoint, rp *RangeProof) bool {
-	// verify the challenges
+	// Create the challenges
 	chal1s256 := sha256.Sum256([]byte(rp.A.X.String() + rp.A.Y.String()))
 	cy := new(big.Int).SetBytes(chal1s256[:])
-	if cy.Cmp(rp.Cy) != 0 {
-		fmt.Println("RPVerify - Challenge Cy failing!")
-		return false
-	}
+
 	chal2s256 := sha256.Sum256([]byte(rp.S.X.String() + rp.S.Y.String()))
 	cz := new(big.Int).SetBytes(chal2s256[:])
-	if cz.Cmp(rp.Cz) != 0 {
-		fmt.Println("RPVerify - Challenge Cz failing!")
-		return false
-	}
+
 	chal3s256 := sha256.Sum256([]byte(rp.T1.X.String() + rp.T1.Y.String() + rp.T2.X.String() + rp.T2.Y.String()))
 	cx := new(big.Int).SetBytes(chal3s256[:])
-	if cx.Cmp(rp.Cx) != 0 {
-		fmt.Println("RPVerify - Challenge Cx failing!")
-		return false
-	}
 
 	// given challenges are correct, very range proof
 	PowersOfY := PowerVector(EC.V, cy)
@@ -1149,10 +1118,6 @@ type MultiRangeProof struct {
 	Mu    *big.Int
 	IPP   InnerProdArg
 
-	// challenges
-	Cy *big.Int
-	Cz *big.Int
-	Cx *big.Int
 }
 
 
@@ -1231,11 +1196,9 @@ func MRPProve(values []*big.Int) MultiRangeProof {
 
 	chal1s256 := sha256.Sum256([]byte(A.X.String() + A.Y.String()))
 	cy := new(big.Int).SetBytes(chal1s256[:])
-	MRPResult.Cy = cy
 
 	chal2s256 := sha256.Sum256([]byte(S.X.String() + S.Y.String()))
 	cz := new(big.Int).SetBytes(chal2s256[:])
-	MRPResult.Cz = cz
 
 	zPowersTimesTwoVec := make([]*big.Int, EC.V)
 	for j := 0; j < m; j++ {
@@ -1245,30 +1208,6 @@ func MRPProve(values []*big.Int) MultiRangeProof {
 		}
 	}
 
-	//fmt.Println(zPowersTimesTwoVec)
-
-	// need to generate l(X), r(X), and t(X)=<l(X),r(X)>
-
-	/*
-			Java code on how to calculate t1 and t2
-
-		        //z^Q
-		        FieldVector zs = FieldVector.from(VectorX.iterate(m, z.pow(2), z::multiply).map(bi -> bi.mod(q)), q);
-		        //2^n
-		        VectorX<BigInteger> twoVector = VectorX.iterate(bitsPerNumber, BigInteger.ONE, bi -> bi.shiftLeft(1));
-		        FieldVector twos = FieldVector.from(twoVector, q);
-		        //2^n \cdot z || 2^n \cdot z^2 ...
-		        FieldVector twoTimesZs = FieldVector.from(zs.getVector().flatMap(twos::times), q);
-		        //l(X)
-		        FieldVector l0 = aL.add(z.negate());
-		        FieldVector l1 = sL;
-		        FieldVectorPolynomial lPoly = new FieldVectorPolynomial(l0, l1);
-		        //r(X)
-		        FieldVector r0 = ys.hadamard(aR.add(z)).add(twoTimesZs);
-		        FieldVector r1 = sR.hadamard(ys);
-				FieldVectorPolynomial rPoly = new FieldVectorPolynomial(r0, r1);
-
-	*/
 	PowerOfCY := PowerVector(EC.V, cy)
 	// fmt.Println(PowerOfCY)
 	l0 := VectorAddScalar(aLConcat, new(big.Int).Neg(cz))
@@ -1311,8 +1250,6 @@ func MRPProve(values []*big.Int) MultiRangeProof {
 
 	chal3s256 := sha256.Sum256([]byte(T1.X.String() + T1.Y.String() + T2.X.String() + T2.Y.String()))
 	cx := new(big.Int).SetBytes(chal3s256[:])
-
-	MRPResult.Cx = cx
 
 	left := CalculateLMRP(aLConcat, sL, cz, cx)
 	right := CalculateRMRP(aRConcat, sR, PowerOfCY, zPowersTimesTwoVec, cz, cx)
@@ -1375,7 +1312,7 @@ changes:
 {(g, h \in G, \textbf{V} \in G^m ; \textbf{v, \gamma} \in Z_p^m) :
 	V_j = h^{\gamma_j}g^{v_j} \wedge v_j \in [0, 2^n - 1] \forall j \in [1, m]}
 */
-func MRPProveTrans(pubkey *secp256k1.PublicKey, values []*big.Int, sSecret *big.Int) (MultiRangeProof, []ECPoint) {
+func MRPProveTrans(values []*big.Int, sSecret *big.Int) (MultiRangeProof, []ECPoint) {
 	// EC.V has the total number of values and bits we can support
 
 	MRPResult := MultiRangeProof{}
@@ -1439,11 +1376,9 @@ func MRPProveTrans(pubkey *secp256k1.PublicKey, values []*big.Int, sSecret *big.
 
 	chal1s256 := sha256.Sum256([]byte(A.X.String() + A.Y.String()))
 	cy := new(big.Int).SetBytes(chal1s256[:])
-	MRPResult.Cy = cy
 
 	chal2s256 := sha256.Sum256([]byte(S.X.String() + S.Y.String()))
 	cz := new(big.Int).SetBytes(chal2s256[:])
-	MRPResult.Cz = cz
 
 	zPowersTimesTwoVec := make([]*big.Int, EC.V)
 	for j := 0; j < m; j++ {
@@ -1453,30 +1388,7 @@ func MRPProveTrans(pubkey *secp256k1.PublicKey, values []*big.Int, sSecret *big.
 		}
 	}
 
-	//fmt.Println(zPowersTimesTwoVec)
 
-	// need to generate l(X), r(X), and t(X)=<l(X),r(X)>
-
-	/*
-			Java code on how to calculate t1 and t2
-
-		        //z^Q
-		        FieldVector zs = FieldVector.from(VectorX.iterate(m, z.pow(2), z::multiply).map(bi -> bi.mod(q)), q);
-		        //2^n
-		        VectorX<BigInteger> twoVector = VectorX.iterate(bitsPerNumber, BigInteger.ONE, bi -> bi.shiftLeft(1));
-		        FieldVector twos = FieldVector.from(twoVector, q);
-		        //2^n \cdot z || 2^n \cdot z^2 ...
-		        FieldVector twoTimesZs = FieldVector.from(zs.getVector().flatMap(twos::times), q);
-		        //l(X)
-		        FieldVector l0 = aL.add(z.negate());
-		        FieldVector l1 = sL;
-		        FieldVectorPolynomial lPoly = new FieldVectorPolynomial(l0, l1);
-		        //r(X)
-		        FieldVector r0 = ys.hadamard(aR.add(z)).add(twoTimesZs);
-		        FieldVector r1 = sR.hadamard(ys);
-				FieldVectorPolynomial rPoly = new FieldVectorPolynomial(r0, r1);
-
-	*/
 	PowerOfCY := PowerVector(EC.V, cy)
 	// fmt.Println(PowerOfCY)
 	l0 := VectorAddScalar(aLConcat, new(big.Int).Neg(cz))
@@ -1519,8 +1431,6 @@ func MRPProveTrans(pubkey *secp256k1.PublicKey, values []*big.Int, sSecret *big.
 
 	chal3s256 := sha256.Sum256([]byte(T1.X.String() + T1.Y.String() + T2.X.String() + T2.Y.String()))
 	cx := new(big.Int).SetBytes(chal3s256[:])
-
-	MRPResult.Cx = cx
 
 	left := CalculateLMRP(aLConcat, sL, cz, cx)
 	right := CalculateRMRP(aRConcat, sR, PowerOfCY, zPowersTimesTwoVec, cz, cx)
@@ -1570,217 +1480,6 @@ func MRPProveTrans(pubkey *secp256k1.PublicKey, values []*big.Int, sSecret *big.
 }
 
 /*
-MRPProveTransArr
-Takes in a list of values and provides an aggregate
-range proof for all the values.
-
-changes:
- all values are concatenated
- r(x) is computed differently
- tau_x calculation is different
- delta calculation is different
-
-{(g, h \in G, \textbf{V} \in G^m ; \textbf{v, \gamma} \in Z_p^m) :
-	V_j = h^{\gamma_j}g^{v_j} \wedge v_j \in [0, 2^n - 1] \forall j \in [1, m]}
-*/
-func MRPProveTransArr(values []*big.Int, blinds []*big.Int, commitments []ECPoint) (MultiRangeProof) {
-	// EC.V has the total number of values and bits we can support
-	if len(values) != len(blinds) || len(blinds) != len(commitments) {
-		panic("The arrays passed through are of a separate length")
-	}
-
-	MRPResult := MultiRangeProof{}
-
-	m := len(values)
-	bitsPerValue := EC.V / m
-
-	// we concatenate the binary representation of the values
-
-	PowerOfTwos := PowerVector(bitsPerValue, big.NewInt(2))
-
-	aLConcat := make([]*big.Int, EC.V)
-	aRConcat := make([]*big.Int, EC.V)
-
-	for j := range values {
-		//tempCommit := new(ECPoint)
-		v := values[j]
-		if v.Cmp(big.NewInt(0)) == -1 {
-			panic("Value is below range! Not proving")
-		}
-
-		maxVal := new(big.Int).Exp(big.NewInt(2), big.NewInt(int64(bitsPerValue)), EC.N)
-
-		if v.Cmp(maxVal) == 1 {
-			panic("Value is above range! Not proving.")
-		}
-
-		gamma := blinds[j]
-		tempCommit := EC.G.Mult(v).Add(EC.H.Mult(gamma))
-
-		if !tempCommit.Equal(commitments[j]) {
-			panic("The generated and provided commitments are not equal")
-		}
-
-
-		// break up v into its bitwise representation
-		aL := reverse(StrToBigIntArray(PadLeft(fmt.Sprintf("%b", v), "0", bitsPerValue)))
-		aR := VectorAddScalar(aL, big.NewInt(-1))
-
-		for i := range aR {
-			aLConcat[bitsPerValue*j+i] = aL[i]
-			aRConcat[bitsPerValue*j+i] = aR[i]
-		}
-	}
-
-
-	alpha, err := rand.Int(rand.Reader, EC.N)
-	check(err)
-
-	A := TwoVectorPCommitWithGens(EC.BPG, EC.BPH, aLConcat, aRConcat).Add(EC.H.Mult(alpha))
-	MRPResult.A = A
-
-	sL := RandVector(EC.V)
-	sR := RandVector(EC.V)
-
-	rho, err := rand.Int(rand.Reader, EC.N)
-	check(err)
-
-	S := TwoVectorPCommitWithGens(EC.BPG, EC.BPH, sL, sR).Add(EC.H.Mult(rho))
-	MRPResult.S = S
-
-	chal1s256 := sha256.Sum256([]byte(A.X.String() + A.Y.String()))
-	cy := new(big.Int).SetBytes(chal1s256[:])
-	MRPResult.Cy = cy
-
-	chal2s256 := sha256.Sum256([]byte(S.X.String() + S.Y.String()))
-	cz := new(big.Int).SetBytes(chal2s256[:])
-	MRPResult.Cz = cz
-
-	zPowersTimesTwoVec := make([]*big.Int, EC.V)
-	for j := 0; j < m; j++ {
-		zp := new(big.Int).Exp(cz, big.NewInt(2+int64(j)), EC.N)
-		for i := 0; i < bitsPerValue; i++ {
-			zPowersTimesTwoVec[j*bitsPerValue+i] = new(big.Int).Mod(new(big.Int).Mul(PowerOfTwos[i], zp), EC.N)
-		}
-	}
-
-	//fmt.Println(zPowersTimesTwoVec)
-
-	// need to generate l(X), r(X), and t(X)=<l(X),r(X)>
-
-	/*
-			Java code on how to calculate t1 and t2
-
-		        //z^Q
-		        FieldVector zs = FieldVector.from(VectorX.iterate(m, z.pow(2), z::multiply).map(bi -> bi.mod(q)), q);
-		        //2^n
-		        VectorX<BigInteger> twoVector = VectorX.iterate(bitsPerNumber, BigInteger.ONE, bi -> bi.shiftLeft(1));
-		        FieldVector twos = FieldVector.from(twoVector, q);
-		        //2^n \cdot z || 2^n \cdot z^2 ...
-		        FieldVector twoTimesZs = FieldVector.from(zs.getVector().flatMap(twos::times), q);
-		        //l(X)
-		        FieldVector l0 = aL.add(z.negate());
-		        FieldVector l1 = sL;
-		        FieldVectorPolynomial lPoly = new FieldVectorPolynomial(l0, l1);
-		        //r(X)
-		        FieldVector r0 = ys.hadamard(aR.add(z)).add(twoTimesZs);
-		        FieldVector r1 = sR.hadamard(ys);
-				FieldVectorPolynomial rPoly = new FieldVectorPolynomial(r0, r1);
-
-	*/
-	PowerOfCY := PowerVector(EC.V, cy)
-	// fmt.Println(PowerOfCY)
-	l0 := VectorAddScalar(aLConcat, new(big.Int).Neg(cz))
-	l1 := sL
-	r0 := VectorAdd(
-		VectorHadamard(
-			PowerOfCY,
-			VectorAddScalar(aRConcat, cz)),
-		zPowersTimesTwoVec)
-	r1 := VectorHadamard(sR, PowerOfCY)
-
-	//calculate t0
-	vz2 := big.NewInt(0)
-	z2 := new(big.Int).Mod(new(big.Int).Mul(cz, cz), EC.N)
-	PowerOfCZ := PowerVector(m, cz)
-	for j := 0; j < m; j++ {
-		vz2 = new(big.Int).Add(vz2,
-			new(big.Int).Mul(
-				PowerOfCZ[j],
-				new(big.Int).Mul(values[j], z2)))
-		vz2 = new(big.Int).Mod(vz2, EC.N)
-	}
-
-	t0 := new(big.Int).Mod(new(big.Int).Add(vz2, DeltaMRP(PowerOfCY, cz, m)), EC.N)
-
-	t1 := new(big.Int).Mod(new(big.Int).Add(InnerProduct(l1, r0), InnerProduct(l0, r1)), EC.N)
-	t2 := InnerProduct(l1, r1)
-
-	// given the t_i values, we can generate commitments to them
-	tau1, err := rand.Int(rand.Reader, EC.N)
-	check(err)
-	tau2, err := rand.Int(rand.Reader, EC.N)
-	check(err)
-
-	T1 := EC.G.Mult(t1).Add(EC.H.Mult(tau1)) //commitment to t1
-	T2 := EC.G.Mult(t2).Add(EC.H.Mult(tau2)) //commitment to t2
-
-	MRPResult.T1 = T1
-	MRPResult.T2 = T2
-
-	chal3s256 := sha256.Sum256([]byte(T1.X.String() + T1.Y.String() + T2.X.String() + T2.Y.String()))
-	cx := new(big.Int).SetBytes(chal3s256[:])
-
-	MRPResult.Cx = cx
-
-	left := CalculateLMRP(aLConcat, sL, cz, cx)
-	right := CalculateRMRP(aRConcat, sR, PowerOfCY, zPowersTimesTwoVec, cz, cx)
-
-	thatPrime := new(big.Int).Mod( // t0 + t1*x + t2*x^2
-		new(big.Int).Add(t0, new(big.Int).Add(new(big.Int).Mul(t1, cx), new(big.Int).Mul(new(big.Int).Mul(cx, cx), t2))), EC.N)
-
-	that := InnerProduct(left, right) // NOTE: BP Java implementation calculates this from the t_i
-
-	// thatPrime and that should be equal
-	if thatPrime.Cmp(that) != 0 {
-		fmt.Println("Proving -- Uh oh! Two diff ways to compute same value not working")
-		fmt.Printf("\tthatPrime = %s\n", thatPrime.String())
-		fmt.Printf("\tthat = %s \n", that.String())
-	}
-
-	MRPResult.Th = that
-
-	vecRandomnessTotal := big.NewInt(0)
-	for j := 0; j < m; j++ {
-		zp := new(big.Int).Exp(cz, big.NewInt(2+int64(j)), EC.N)
-		tmp1 := new(big.Int).Mul(blinds[j], zp)
-		vecRandomnessTotal = new(big.Int).Mod(new(big.Int).Add(vecRandomnessTotal, tmp1), EC.N)
-	}
-	//fmt.Println(vecRandomnessTotal)
-	taux1 := new(big.Int).Mod(new(big.Int).Mul(tau2, new(big.Int).Mul(cx, cx)), EC.N)
-	taux2 := new(big.Int).Mod(new(big.Int).Mul(tau1, cx), EC.N)
-	taux := new(big.Int).Mod(new(big.Int).Add(taux1, new(big.Int).Add(taux2, vecRandomnessTotal)), EC.N)
-
-	MRPResult.Tau = taux
-
-	mu := new(big.Int).Mod(new(big.Int).Add(alpha, new(big.Int).Mul(rho, cx)), EC.N)
-	MRPResult.Mu = mu
-
-	HPrime := make([]ECPoint, len(EC.BPH))
-
-	for i := range HPrime {
-		HPrime[i] = EC.BPH[i].Mult(new(big.Int).ModInverse(PowerOfCY[i], EC.N))
-	}
-
-	P := TwoVectorPCommitWithGens(EC.BPG, HPrime, left, right)
-	//fmt.Println(P)
-
-	MRPResult.IPP = InnerProductProve(left, right, that, P, EC.U, EC.BPG, HPrime)
-
-	return MRPResult
-}
-
-/*
 MultiRangeProof Verify
 Takes in a MultiRangeProof and verifies its correctness
 
@@ -1796,22 +1495,13 @@ func MRPVerify(mrp *MultiRangeProof, comms []ECPoint) bool {
 	// verify the challenges
 	chal1s256 := sha256.Sum256([]byte(mrp.A.X.String() + mrp.A.Y.String()))
 	cy := new(big.Int).SetBytes(chal1s256[:])
-	if cy.Cmp(mrp.Cy) != 0 {
-		fmt.Println("MRPVerify - Challenge Cy failing!")
-		return false
-	}
+
 	chal2s256 := sha256.Sum256([]byte(mrp.S.X.String() + mrp.S.Y.String()))
 	cz := new(big.Int).SetBytes(chal2s256[:])
-	if cz.Cmp(mrp.Cz) != 0 {
-		fmt.Println("MRPVerify - Challenge Cz failing!")
-		return false
-	}
+
 	chal3s256 := sha256.Sum256([]byte(mrp.T1.X.String() + mrp.T1.Y.String() + mrp.T2.X.String() + mrp.T2.Y.String()))
 	cx := new(big.Int).SetBytes(chal3s256[:])
-	if cx.Cmp(mrp.Cx) != 0 {
-		fmt.Println("RPVerify - Challenge Cx failing!")
-		return false
-	}
+
 
 	// given challenges are correct, very range proof
 	PowersOfY := PowerVector(EC.V, cy)

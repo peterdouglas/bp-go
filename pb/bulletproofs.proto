@@ -30,10 +30,6 @@ message RangeProof {
     bytes Th = 7;
     bytes Mu = 8;
     InnerProductProof IPP = 9;
-    // Challenges
-    bytes Cy = 10;
-    bytes Cz = 11;
-    bytes Cx = 12;
 
 }
 
@@ -47,9 +43,6 @@ message MultiRangeProof {
     bytes Th = 9;
     bytes Mu = 10;
     InnerProductProof IPP = 11;
-    // Challenges
-    bytes Cy = 12;
-    bytes Cz = 13;
-    bytes Cx = 14;
+
 
 }

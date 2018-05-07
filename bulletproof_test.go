@@ -7,7 +7,6 @@ import (
 	"testing"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/decred/base58"
 	"os"
 	"bytes"
 	"encoding/gob"
@@ -371,38 +370,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-/*func TestRPVerifyTransWithRebuild(t *testing.T) {
-	EC = NewECPrimeGroupKey(256)
-
-	valArr := make([]*big.Int, 4)
-	valArr[0] = big.NewInt(100000000000000)
-	valArr[1] = big.NewInt(7)
-	valArr[2] = big.NewInt(4)
-	valArr[3] = big.NewInt(0)
-
-
-	mrp, commitments := PrepareTransaction(aliceSK, bobPk, alicePk, valArr)
-	nMbp, err := mrp.Serialize()
-	if err != nil {
-		log.Fatal("Serialization error")
-	}
-	spew.Dump(nMbp)
-	rebuiltMP := MultiRangeProof{}
-
-	rebuiltMP.Rebuild(nMbp)
-
-	if MRPVerify(rebuiltMP, commitments) {
-		fmt.Println("Range Proof Verification works")
-	} else {
-		f, _ := os.Create("./mrp_file.txt")
-		defer f.Close()
-
-		spew.Fdump(f, mrp)
-		t.Error("*****Range Proof FAILURE")
-	}
-
-}
-
+/*
 func TestMRPVerifyTransWithReceiverConf(t *testing.T) {
 	EC = NewECPrimeGroupKey(64)
 	// create the private keys
@@ -423,7 +391,7 @@ func TestMRPVerifyTransWithReceiverConf(t *testing.T) {
 	bobPk := secp256k1.NewPublicKey(bobPkx, bobPky)
 	mrp, commitments := PrepareTransaction(aliceSK, bobPk, alicePk, valArr)
 	strMP, _ := mrp.Serialize()
-	strconv.Atoi(strMP)
+	//strconv.Atoi(strMP)
 	if MRPVerify(mrp, commitments) {
 		fmt.Println("Range Proof Verification works")
 	} else {
@@ -436,13 +404,7 @@ func TestMRPVerifyTransWithReceiverConf(t *testing.T) {
 		spew.Fdump(f, strMP)
 
 
-	}*/
-
-func GetRPTrytes(rp []byte) string {
-	basePro := base58.Encode(rp)
-	return string(basePro)
-}
-
+}*/
 
 func TestRPVerifyTransWithReceiverConf(t *testing.T) {
 	EC = NewECPrimeGroupKey(64)
@@ -499,7 +461,7 @@ func TestRangeProof_Bytes(t *testing.T) {
 
 	// gen public keys
 	bobPkx, bobPky := bobSK.Public()
-	for i := 1; i <  1779530283000000; i = i + 100 {
+	for i := 1; i <  1779530283000000; i = i*2 {
 
 		val := big.NewInt(int64(i))
 
@@ -716,7 +678,6 @@ func TestInnerProduct(t *testing.T) {
 	}
 
 }
-
 
 
 func BenchmarkMRPVerifySize(b *testing.B) {

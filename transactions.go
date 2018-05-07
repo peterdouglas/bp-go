@@ -40,10 +40,6 @@ func (c *Commitment) Generate(receiverKey *secp256k1.PublicKey, v, sSecret *big.
 func (mp *MultiRangeProof) Serialize() (string, error) {
 	// create the protobuff object for serialization
 	pbmp := &pb.MultiRangeProof{}
-	/*for _, comm := range mp.Comms {
-		newComm := &pb.Commitment{comm.EncValue, comm.Blind.Bytes(), comm.Comm.X.Bytes(), comm.Comm.Y.Bytes()}
-		pbmp.Comm = append(pbmp.Comm, newComm)
-	}*/
 
 	pbmp.A = &pb.ECPoint{mp.A.Bytes()}
 	pbmp.S = &pb.ECPoint{mp.S.Bytes()}
@@ -69,9 +65,6 @@ func (mp *MultiRangeProof) Serialize() (string, error) {
 
 	pbmp.IPP.A = mp.IPP.A.Bytes()
 	pbmp.IPP.B = mp.IPP.B.Bytes()
-	pbmp.Cy = mp.Cy.Bytes()
-	pbmp.Cz = mp.Cz.Bytes()
-	pbmp.Cx = mp.Cx.Bytes()
 
 	serialMp, err := proto.Marshal(pbmp)
 	if err != nil {
@@ -131,9 +124,6 @@ func (mp *MultiRangeProof) Rebuild(encodedMP string) (error) {
 
 	mp.IPP.A = new(big.Int).SetBytes(pbRp.IPP.A)
 	mp.IPP.B = new(big.Int).SetBytes(pbRp.IPP.B)
-	mp.Cy = new(big.Int).SetBytes(pbRp.Cy)
-	mp.Cz = new(big.Int).SetBytes(pbRp.Cz)
-	mp.Cx = new(big.Int).SetBytes(pbRp.Cx)
 
 	return nil
 }
@@ -183,9 +173,6 @@ func (rp *RangeProof) Rebuild(encodedRP string) (error) {
 
 	rp.IPP.A = new(big.Int).SetBytes(pbRp.IPP.A)
 	rp.IPP.B = new(big.Int).SetBytes(pbRp.IPP.B)
-	rp.Cy = new(big.Int).SetBytes(pbRp.Cy)
-	rp.Cz = new(big.Int).SetBytes(pbRp.Cz)
-	rp.Cx = new(big.Int).SetBytes(pbRp.Cx)
 
 	return nil
 }
@@ -233,52 +220,7 @@ func (rp *RangeProof) Bytes() []byte {
 		//retBytes.Write(space)
 	}
 
-	retBytes.Write(rp.Cy.Bytes())
-	//retBytes.Write(space)
-	retBytes.Write(rp.Cz.Bytes())
-	//retBytes.Write(space)
-	retBytes.Write(rp.Cx.Bytes())
-	//retBytes.Write(space)
 	return retBytes.Bytes()
-
-}
-
-func (rp *RangeProof) RebuildBytes(buf []byte)  {
-
-	rebBytes := bytes.Fields(buf)
-	rp.A.Rebuild(rebBytes[0])
-	rp.S.Rebuild(rebBytes[1])
-	rp.T1.Rebuild(rebBytes[2])
-	rp.T2.Rebuild(rebBytes[3])
-
-	rp.Tau = new(big.Int).SetBytes(rebBytes[4])
-	rp.Th = new(big.Int).SetBytes(rebBytes[5])
-	rp.Mu = new(big.Int).SetBytes(rebBytes[6])
-	var j = 7
-	rp.IPP.L = make([]ECPoint, 6)
-	rp.IPP.R = make([]ECPoint, 6)
-	for i := 0; i < 6; i++  {
-		rp.IPP.L[i].Rebuild(rebBytes[j])
-		j++
-		rp.IPP.R[i].Rebuild(rebBytes[j])
-		j++
-	}
-
-	rp.IPP.A = new(big.Int).SetBytes(rebBytes[j])
-	j++
-	rp.IPP.B = new(big.Int).SetBytes(rebBytes[j])
-	j++
-	rp.IPP.Challenges = make([]*big.Int, 7)
-	for i := 0; i < 7;i++  {
-		rp.IPP.Challenges[i] = new(big.Int).SetBytes(rebBytes[j])
-		j++
-	}
-
-	rp.Cy = new(big.Int).SetBytes(rebBytes[j])
-	j++
-	rp.Cz = new(big.Int).SetBytes(rebBytes[j])
-	j++
-	rp.Cx = new(big.Int).SetBytes(rebBytes[j])
 
 }
 
@@ -310,9 +252,6 @@ func (rp *RangeProof) Serialize() (string, error) {
 
 	pbrp.IPP.A = rp.IPP.A.Bytes()
 	pbrp.IPP.B = rp.IPP.B.Bytes()
-	pbrp.Cy = rp.Cy.Bytes()
-	pbrp.Cz = rp.Cz.Bytes()
-	pbrp.Cx = rp.Cx.Bytes()
 
 	serialMp, err := proto.Marshal(pbrp)
 	if err != nil {
