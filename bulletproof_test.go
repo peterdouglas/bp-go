@@ -486,6 +486,7 @@ func TestRangeProof_Bytes(t *testing.T) {
 	}
 }
 
+// Test using Gob to encode/decode instead of protobuf
 func TestRangeProof_BytesFunc(t *testing.T) {
 	EC = NewECPrimeGroupKey(64)
 	// create the private keys
@@ -545,7 +546,7 @@ func TestRangeProofMax(t *testing.T) {
 	}
 }
 
-/*
+
 func TestRPVerify2(t *testing.T) {
 	EC = NewECPrimeGroupKey(64)
 	// Testing largest number in range
@@ -556,6 +557,7 @@ func TestRPVerify2(t *testing.T) {
 	}
 }
 
+
 func TestRPVerify3(t *testing.T) {
 	EC = NewECPrimeGroupKey(64)
 	// Testing the value 3
@@ -565,6 +567,7 @@ func TestRPVerify3(t *testing.T) {
 		t.Error("*****Range Proof FAILURE")
 	}
 }
+
 
 func TestRPVerify4(t *testing.T) {
 	EC = NewECPrimeGroupKey(32)
@@ -591,16 +594,17 @@ func TestRPVerifyRand(t *testing.T) {
 	}
 }
 
+
 func TestMultiRPVerify1(t *testing.T) {
 	values := []*big.Int{big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0)}
 	EC = NewECPrimeGroupKey(64 * len(values))
 	// Testing smallest number in range
-	proof, commitments := PrepareTransaction(aliceSK, bobPk, alicePk, values)
+	comms, proof := MRPProve(values)
 	proofString := fmt.Sprintf("%s", proof)
 
 	fmt.Println(len(proofString)) // length is good measure of bytes, correct?
 
-	if MRPVerify(proof, commitments) {
+	if MRPVerify(&proof, comms) {
 		fmt.Println("Multi Range Proof Verification works")
 	} else {
 		t.Error("***** Multi Range Proof FAILURE")
@@ -611,7 +615,9 @@ func TestMultiRPVerify2(t *testing.T) {
 	values := []*big.Int{big.NewInt(0)}
 	EC = NewECPrimeGroupKey(64 * len(values))
 	// Testing smallest number in range
-	if MRPVerify(PrepareTransaction(aliceSK, bobPk, alicePk, values)) {
+	comms, proof := MRPProve(values)
+
+	if MRPVerify(&proof, comms) {
 		fmt.Println("Multi Range Proof Verification works")
 	} else {
 		t.Error("***** Multi Range Proof FAILURE")
@@ -622,15 +628,17 @@ func TestMultiRPVerify3(t *testing.T) {
 	values := []*big.Int{big.NewInt(0), big.NewInt(1)}
 	EC = NewECPrimeGroupKey(64 * len(values))
 	// Testing smallest number in range
-	if MRPVerify(MRPProve(values)) {
+    comms, proof := MRPProve(values)
+
+    if MRPVerify(&proof, comms) {
 		fmt.Println("Multi Range Proof Verification works")
 	} else {
 		t.Error("***** Multi Range Proof FAILURE")
 	}
 }
 
-/*
- Still need to add testing for just the MPProve module without the components
+
+//Still need to add testing for just the MPProve module without the components
 func TestMultiRPVerify4(t *testing.T) {
 	for j := 1; j < 33; j = 2 * j {
 		values := make([]*big.Int, j)
@@ -640,12 +648,13 @@ func TestMultiRPVerify4(t *testing.T) {
 
 		EC = NewECPrimeGroupKey(64 * len(values))
 		// Testing smallest number in range
-		proof := MRPProve(values)
+		comms, proof := MRPProve(values)
 		proofString := fmt.Sprintf("%s", proof)
 
 		fmt.Println(len(proofString)) // length is good measure of bytes, correct?
 
-		if MRPVerify(proof) {
+
+        if MRPVerify(&proof, comms) {
 			fmt.Println("Multi Range Proof Verification works")
 		} else {
 			t.Error("***** Multi Range Proof FAILURE")
@@ -690,12 +699,11 @@ func BenchmarkMRPVerifySize(b *testing.B) {
 
 			EC = NewECPrimeGroupKey(64 * len(values))
 			// Testing smallest number in range
-			proof := MRPProve(values)
-			proofString := fmt.Sprintf("%s", proof)
-			fmt.Println(proofString)
-			fmt.Printf("Size for %d values: %d bytes\n", j, len(proofString)) // length is good measure of bytes, correct?
+			comms, proof := MRPProve(values)
+			proofBytes := proof.Bytes()
+			fmt.Printf("Size for %d values: %d bytes\n", j, len(proofBytes)) // length is good measure of bytes, correct?
 
-			if MRPVerify(proof) {
+            if MRPVerify(&proof, comms) {
 				fmt.Println("Multi Range Proof Verification works")
 			} else {
 				fmt.Println("***** Multi Range Proof FAILURE")
@@ -716,7 +724,7 @@ func BenchmarkMRPProve16(b *testing.B) {
 	EC = NewECPrimeGroupKey(64 * len(values))
 	var r MultiRangeProof
 	for i := 0; i < b.N; i++{
-		r = MRPProve(values)
+		_, r = MRPProve(values)
 	}
 
 	result = r
@@ -729,11 +737,11 @@ func BenchmarkMRPVerify16(b *testing.B) {
 		values[k] = big.NewInt(0)
 	}
 	EC = NewECPrimeGroupKey(64 * len(values))
-	proof := MRPProve(values)
+	comms, proof := MRPProve(values)
 
 	var r bool
 	for i := 0; i < b.N; i++{
-		r = MRPVerify(proof)
+		r = MRPVerify(&proof, comms)
 	}
 	boores = r
 }
@@ -747,7 +755,7 @@ func BenchmarkMRPProve32(b *testing.B) {
 	EC = NewECPrimeGroupKey(64 * len(values))
 	var r MultiRangeProof
 	for i := 0; i < b.N; i++{
-		r = MRPProve(values)
+		_, r = MRPProve(values)
 	}
 	result = r
 }
@@ -759,11 +767,12 @@ func BenchmarkMRPVerify32(b *testing.B) {
 		values[k] = big.NewInt(0)
 	}
 	EC = NewECPrimeGroupKey(64 * len(values))
-	proof := MRPProve(values)
+    comms, proof := MRPProve(values)
+
 	var r bool
 	for i := 0; i < b.N; i++{
-		r = MRPVerify(proof)
+		r = MRPVerify(&proof, comms)
 	}
 	boores = r
 }
-*/
+

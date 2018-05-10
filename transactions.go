@@ -37,6 +37,36 @@ func (c *Commitment) Generate(receiverKey *secp256k1.PublicKey, v, sSecret *big.
 	return nil
 }
 
+
+func (rp *MultiRangeProof) Bytes() []byte {
+	var retBytes bytes.Buffer
+	retBytes.Write(rp.A.Bytes())
+	retBytes.Write(rp.S.Bytes())
+	retBytes.Write(rp.T1.Bytes())
+	retBytes.Write(rp.T2.Bytes())
+	retBytes.Write(rp.Tau.Bytes())
+	retBytes.Write(rp.Th.Bytes())
+	if len(rp.Th.Bytes()) != 32 {
+		fmt.Printf("Tau %v\n", rp.Th.Sign())
+	}
+	retBytes.Write(rp.Mu.Bytes())
+
+	// now for the IPP bytes
+	for i :=0; i < len(rp.IPP.R);i++  {
+		retBytes.Write(rp.IPP.L[i].Bytes())
+		retBytes.Write(rp.IPP.R[i].Bytes())
+	}
+	retBytes.Write(rp.IPP.A.Bytes())
+	retBytes.Write(rp.IPP.B.Bytes())
+
+	for i := 0; i < len(rp.IPP.Challenges) ; i++  {
+		retBytes.Write(rp.IPP.Challenges[i].Bytes())
+	}
+
+	return retBytes.Bytes()
+
+}
+
 func (mp *MultiRangeProof) Serialize() (string, error) {
 	// create the protobuff object for serialization
 	pbmp := &pb.MultiRangeProof{}
@@ -183,41 +213,28 @@ func (rp *RangeProof) Verify(x, y *big.Int) bool {
 }
 
 func (rp *RangeProof) Bytes() []byte {
-	//var space = []byte(" ")
 	var retBytes bytes.Buffer
 	retBytes.Write(rp.A.Bytes())
-	//retBytes.Write(space)
 	retBytes.Write(rp.S.Bytes())
-	//retBytes.Write(space)
 	retBytes.Write(rp.T1.Bytes())
-	//retBytes.Write(space)
 	retBytes.Write(rp.T2.Bytes())
-	//retBytes.Write(space)
 	retBytes.Write(rp.Tau.Bytes())
 	retBytes.Write(rp.Th.Bytes())
-	//retBytes.Write(space)
 	if len(rp.Th.Bytes()) != 32 {
 		fmt.Printf("Tau %v\n", rp.Th.Sign())
 	}
-	//retBytes.Write(space)
 	retBytes.Write(rp.Mu.Bytes())
-	//retBytes.Write(space)
 
 	// now for the IPP bytes
 	for i :=0; i < len(rp.IPP.R);i++  {
 		retBytes.Write(rp.IPP.L[i].Bytes())
-		//retBytes.Write(space)
 		retBytes.Write(rp.IPP.R[i].Bytes())
-		//retBytes.Write(space)
 	}
 	retBytes.Write(rp.IPP.A.Bytes())
-	//retBytes.Write(space)
 	retBytes.Write(rp.IPP.B.Bytes())
-	//retBytes.Write(space)
 
 	for i := 0; i < len(rp.IPP.Challenges) ; i++  {
 		retBytes.Write(rp.IPP.Challenges[i].Bytes())
-		//retBytes.Write(space)
 	}
 
 	return retBytes.Bytes()

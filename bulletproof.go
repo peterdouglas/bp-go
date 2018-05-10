@@ -531,11 +531,6 @@ type RangeProof struct {
 	Th   *big.Int
 	Mu   *big.Int
 	IPP  InnerProdArg
-
-	// challenges
-	Cy *big.Int
-	Cz *big.Int
-	Cx *big.Int
 }
 
 /*
@@ -649,23 +644,7 @@ func RPProve(v *big.Int) RangeProof {
 	z2 := new(big.Int).Exp(cz, big.NewInt(2), EC.N)
 	// need to generate l(X), r(X), and t(X)=<l(X),r(X)>
 
-	/*
-			Java code on how to calculate t1 and t2
 
-				FieldVector ys = FieldVector.from(VectorX.iterate(n, BigInteger.ONE, y::multiply),q); //powers of y
-			    FieldVector l0 = aL.add(z.negate());
-		        FieldVector l1 = sL;
-		        FieldVector twoTimesZSquared = twos.times(zSquared);
-		        FieldVector r0 = ys.hadamard(aR.add(z)).add(twoTimesZSquared);
-		        FieldVector r1 = sR.hadamard(ys);
-		        BigInteger k = ys.sum().multiply(z.subtract(zSquared)).subtract(zCubed.shiftLeft(n).subtract(zCubed));
-		        BigInteger t0 = k.add(zSquared.multiply(number));
-		        BigInteger t1 = l1.innerPoduct(r0).add(l0.innerPoduct(r1));
-		        BigInteger t2 = l1.innerPoduct(r1);
-		   		PolyCommitment<T> polyCommitment = PolyCommitment.from(base, t0, VectorX.of(t1, t2));
-
-
-	*/
 	PowerOfCY := PowerVector(EC.V, cy)
 	// fmt.Println(PowerOfCY)
 	l0 := VectorAddScalar(aL, new(big.Int).Neg(cz))
@@ -1135,7 +1114,7 @@ changes:
 {(g, h \in G, \textbf{V} \in G^m ; \textbf{v, \gamma} \in Z_p^m) :
 	V_j = h^{\gamma_j}g^{v_j} \wedge v_j \in [0, 2^n - 1] \forall j \in [1, m]}
 */
-func MRPProve(values []*big.Int) MultiRangeProof {
+func MRPProve(values []*big.Int) ([]ECPoint, MultiRangeProof) {
 	// EC.V has the total number of values and bits we can support
 
 	MRPResult := MultiRangeProof{}
@@ -1147,7 +1126,7 @@ func MRPProve(values []*big.Int) MultiRangeProof {
 
 	PowerOfTwos := PowerVector(bitsPerValue, big.NewInt(2))
 
-	Comms := make([]Commitment, m)
+	Comms := make([]ECPoint, m)
 	gammas := make([]*big.Int, m)
 	aLConcat := make([]*big.Int, EC.V)
 	aRConcat := make([]*big.Int, EC.V)
@@ -1164,7 +1143,7 @@ func MRPProve(values []*big.Int) MultiRangeProof {
 
 		gamma, err := rand.Int(rand.Reader, EC.N)
 		check(err)
-		Comms[j].Comm = EC.G.Mult(v).Add(EC.H.Mult(gamma))
+		Comms[j]= EC.G.Mult(v).Add(EC.H.Mult(gamma))
 		gammas[j] = gamma
 
 		// break up v into its bitwise representation
@@ -1177,7 +1156,6 @@ func MRPProve(values []*big.Int) MultiRangeProof {
 		}
 	}
 
-	MRPResult.Comms = Comms
 
 	alpha, err := rand.Int(rand.Reader, EC.N)
 	check(err)
@@ -1295,7 +1273,7 @@ func MRPProve(values []*big.Int) MultiRangeProof {
 
 	MRPResult.IPP = InnerProductProve(left, right, that, P, EC.U, EC.BPG, HPrime)
 
-	return MRPResult
+	return Comms, MRPResult
 }
 
 /*
