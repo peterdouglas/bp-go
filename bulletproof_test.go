@@ -370,16 +370,10 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-/*
+
 func TestMRPVerifyTransWithReceiverConf(t *testing.T) {
 	EC = NewECPrimeGroupKey(64)
-	// create the private keys
-	aliceSK, _ := secp256k1.GeneratePrivateKey()
-	bobSK, _ := secp256k1.GeneratePrivateKey()
 
-	// gen public keys
-	alicePkx, alicePky := aliceSK.Public()
-	bobPkx, bobPky := bobSK.Public()
 
 	valArr := make([]*big.Int, 4)
 	valArr[0] = big.NewInt(6)
@@ -387,12 +381,10 @@ func TestMRPVerifyTransWithReceiverConf(t *testing.T) {
 	valArr[2] = big.NewInt(4)
 	valArr[3] = big.NewInt(0)
 
-	alicePk := secp256k1.NewPublicKey(alicePkx, alicePky)
-	bobPk := secp256k1.NewPublicKey(bobPkx, bobPky)
-	mrp, commitments := PrepareTransaction(aliceSK, bobPk, alicePk, valArr)
+    commitments, mrp := MRPProve(valArr)
 	strMP, _ := mrp.Serialize()
 	//strconv.Atoi(strMP)
-	if MRPVerify(mrp, commitments) {
+	if MRPVerify(&mrp, commitments) {
 		fmt.Println("Range Proof Verification works")
 	} else {
 		t.Error("*****Range Proof FAILURE")
@@ -404,7 +396,7 @@ func TestMRPVerifyTransWithReceiverConf(t *testing.T) {
 		spew.Fdump(f, strMP)
 
 
-}*/
+}
 
 func TestRPVerifyTransWithReceiverConf(t *testing.T) {
 	EC = NewECPrimeGroupKey(64)
@@ -438,7 +430,6 @@ func TestRPVerifyTransWithReceiverConf(t *testing.T) {
 
 	fmt.Printf("%v\nThe length of the proof in Trytes is %v\n", serRP, len(serRP))
 	rpb.Rebuild(serRP)
-	fmt.Println(len(rp.IPP.Challenges) + len(rp.IPP.L) + len(rp.IPP.R))
 	if RPVerifyTrans(&comm1.Comm, rpb) {
 		fmt.Println("Range Proof Verification works")
 	} else {

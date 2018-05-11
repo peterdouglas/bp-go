@@ -8,7 +8,6 @@ import (
 	"math/big"
 	"fmt"
 	"math"
-	"strconv"
 
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"errors"
@@ -116,8 +115,6 @@ type InnerProdArg struct {
 	R []ECPoint
 	A *big.Int
 	B *big.Int
-
-	Challenges []*big.Int
 }
 
 // GenerateNewParams - Creates new EC Parameters to be used in the bulletproofs
@@ -252,8 +249,6 @@ func InnerProductProveSub(proof InnerProdArg, G, H []ECPoint, a []*big.Int, b []
 
 	x := new(big.Int).SetBytes(s256[:])
 
-	proof.Challenges[curIt] = x
-
 	Gprime, Hprime, Pprime := GenerateNewParams(G, H, x, L, R, P)
 	xinv := new(big.Int).ModInverse(x, EC.N)
 
@@ -280,13 +275,12 @@ func InnerProductProve(a []*big.Int, b []*big.Int, c *big.Int, P, U ECPoint, G, 
 		Lvals,
 		Rvals,
 		big.NewInt(0),
-		big.NewInt(0),
-		challenges}
+		big.NewInt(0)}
 
 	// randomly generate an x value from public data
 	x := sha256.Sum256([]byte(P.X.String() + P.Y.String()))
 
-	runningProof.Challenges[loglen] = new(big.Int).SetBytes(x[:])
+	challenges[loglen] = new(big.Int).SetBytes(x[:])
 
 	Pprime := P.Add(U.Mult(new(big.Int).Mul(new(big.Int).SetBytes(x[:]), c)))
 	ux := U.Mult(new(big.Int).SetBytes(x[:]))
@@ -310,14 +304,7 @@ func InnerProductVerify(c *big.Int, P, U ECPoint, G, H []ECPoint, ipp InnerProdA
 	s1 := sha256.Sum256([]byte(P.X.String() + P.Y.String()))
 	chal1 := new(big.Int).SetBytes(s1[:])
 	ux := U.Mult(chal1)
-	curIt := len(ipp.Challenges) - 1
-
-	if ipp.Challenges[curIt].Cmp(chal1) != 0 {
-		fmt.Println("IPVerify - Initial Challenge Failed")
-		return false
-	}
-
-	curIt--
+	curIt := len(ipp.L) - 1
 
 	Gprime := G
 	Hprime := H
@@ -334,11 +321,6 @@ func InnerProductVerify(c *big.Int, P, U ECPoint, G, H []ECPoint, ipp InnerProdA
 				Rval.X.String() + Rval.Y.String()))
 
 		chal2 := new(big.Int).SetBytes(s256[:])
-
-		if ipp.Challenges[curIt].Cmp(chal2) != 0 {
-			fmt.Println("IPVerify - Challenge verification failed at index " + strconv.Itoa(curIt))
-			return false
-		}
 
 		Gprime, Hprime, Pprime = GenerateNewParams(Gprime, Hprime, chal2, Lval, Rval, Pprime)
 		curIt--
@@ -370,14 +352,12 @@ func InnerProductVerifyFast(c *big.Int, P, U ECPoint, G, H []ECPoint, ipp InnerP
 	fmt.Printf("Commitment Value: %s \n", P)
 	s1 := sha256.Sum256([]byte(P.X.String() + P.Y.String()))
 	chal1 := new(big.Int).SetBytes(s1[:])
+	challenges := make([]*big.Int, len(ipp.L))
 	ux := U.Mult(chal1)
-	curIt := len(ipp.Challenges) - 1
+	curIt := len(ipp.L)
 
 	// check all challenges
-	if ipp.Challenges[curIt].Cmp(chal1) != 0 {
-		fmt.Println("IPVerify - Initial Challenge Failed")
-		return false
-	}
+
 
 	for j := curIt - 1; j >= 0; j-- {
 		Lval := ipp.L[j]
@@ -388,12 +368,8 @@ func InnerProductVerifyFast(c *big.Int, P, U ECPoint, G, H []ECPoint, ipp InnerP
 			Lval.X.String() + Lval.Y.String() +
 				Rval.X.String() + Rval.Y.String()))
 
-		chal2 := new(big.Int).SetBytes(s256[:])
+		challenges[j]= new(big.Int).SetBytes(s256[:])
 
-		if ipp.Challenges[j].Cmp(chal2) != 0 {
-			fmt.Println("IPVerify - Challenge verification failed at index " + strconv.Itoa(j))
-			return false
-		}
 	}
 	// begin computing
 
@@ -402,7 +378,7 @@ func InnerProductVerifyFast(c *big.Int, P, U ECPoint, G, H []ECPoint, ipp InnerP
 
 	tmp1 := EC.Zero()
 	for j := curIt; j >= 0; j-- {
-		x2 := new(big.Int).Exp(ipp.Challenges[j], big.NewInt(2), EC.N)
+		x2 := new(big.Int).Exp(challenges[j], big.NewInt(2), EC.N)
 		x2i := new(big.Int).ModInverse(x2, EC.N)
 		//fmt.Println(tmp1)
 		tmp1 = ipp.L[j].Mult(x2).Add(ipp.R[j].Mult(x2i)).Add(tmp1)
@@ -417,7 +393,8 @@ func InnerProductVerifyFast(c *big.Int, P, U ECPoint, G, H []ECPoint, ipp InnerP
 		si := big.NewInt(1)
 		for j := curIt; j >= 0; j-- {
 			// original challenge if the jth bit of i is 1, inverse challenge otherwise
-			chal := ipp.Challenges[j]
+
+			chal := challenges[j]
 			if big.NewInt(int64(i)).Bit(j) == 0 {
 				chal = new(big.Int).ModInverse(chal, EC.N)
 			}

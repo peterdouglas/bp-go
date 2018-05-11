@@ -18,7 +18,6 @@ message InnerProductProof {
     repeated ECPoint R = 2;
     bytes A = 3;
     bytes B = 4;
-    repeated bytes Challenges = 5;
 }
 
 message RangeProof {
@@ -34,7 +33,6 @@ message RangeProof {
 }
 
 message MultiRangeProof {
-    //repeated Commitment Comm = 1;
     ECPoint A = 2;
     ECPoint S = 3;
     ECPoint T1 = 4;

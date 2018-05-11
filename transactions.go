@@ -59,9 +59,6 @@ func (rp *MultiRangeProof) Bytes() []byte {
 	retBytes.Write(rp.IPP.A.Bytes())
 	retBytes.Write(rp.IPP.B.Bytes())
 
-	for i := 0; i < len(rp.IPP.Challenges) ; i++  {
-		retBytes.Write(rp.IPP.Challenges[i].Bytes())
-	}
 
 	return retBytes.Bytes()
 
@@ -89,9 +86,6 @@ func (mp *MultiRangeProof) Serialize() (string, error) {
 		pbmp.IPP.R = append(pbmp.IPP.R, newIPR)
 	}
 
-	for i := 0;i < len(mp.IPP.Challenges) ;i++  {
-		pbmp.IPP.Challenges = append(pbmp.IPP.Challenges, mp.IPP.Challenges[i].Bytes())
-	}
 
 	pbmp.IPP.A = mp.IPP.A.Bytes()
 	pbmp.IPP.B = mp.IPP.B.Bytes()
@@ -147,10 +141,6 @@ func (mp *MultiRangeProof) Rebuild(encodedMP string) (error) {
 		mp.IPP.R = append(mp.IPP.R, newIPR)
 	}
 
-	for i:= 0; i < len(pbRp.IPP.Challenges) ; i++  {
-		tempChal := new(big.Int).SetBytes(pbRp.IPP.Challenges[i])
-		mp.IPP.Challenges = append(mp.IPP.Challenges, tempChal)
-	}
 
 	mp.IPP.A = new(big.Int).SetBytes(pbRp.IPP.A)
 	mp.IPP.B = new(big.Int).SetBytes(pbRp.IPP.B)
@@ -187,6 +177,7 @@ func (rp *RangeProof) Rebuild(encodedRP string) (error) {
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		newIPR :=  ECPoint{}
 		err = newIPR.Rebuild(pbRp.IPP.R[i].GetCompressed())
 		if err != nil {
@@ -194,11 +185,6 @@ func (rp *RangeProof) Rebuild(encodedRP string) (error) {
 		}
 		rp.IPP.L = append(rp.IPP.L, newIPL)
 		rp.IPP.R = append(rp.IPP.R, newIPR)
-	}
-
-	for i:= 0; i < len(pbRp.IPP.Challenges) ; i++  {
-		tempChal:= new(big.Int).SetBytes(pbRp.IPP.Challenges[i])
-		rp.IPP.Challenges = append(rp.IPP.Challenges, tempChal)
 	}
 
 	rp.IPP.A = new(big.Int).SetBytes(pbRp.IPP.A)
@@ -233,9 +219,6 @@ func (rp *RangeProof) Bytes() []byte {
 	retBytes.Write(rp.IPP.A.Bytes())
 	retBytes.Write(rp.IPP.B.Bytes())
 
-	for i := 0; i < len(rp.IPP.Challenges) ; i++  {
-		retBytes.Write(rp.IPP.Challenges[i].Bytes())
-	}
 
 	return retBytes.Bytes()
 
@@ -263,9 +246,6 @@ func (rp *RangeProof) Serialize() (string, error) {
 		pbrp.IPP.R = append(pbrp.IPP.R, newIPR)
 	}
 
-	for i := 0;i < len(rp.IPP.Challenges) ;i++  {
-		pbrp.IPP.Challenges = append(pbrp.IPP.Challenges, rp.IPP.Challenges[i].Bytes())
-	}
 
 	pbrp.IPP.A = rp.IPP.A.Bytes()
 	pbrp.IPP.B = rp.IPP.B.Bytes()
