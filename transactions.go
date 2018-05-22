@@ -206,9 +206,7 @@ func (rp *RangeProof) Bytes() []byte {
 	retBytes.Write(rp.T2.Bytes())
 	retBytes.Write(rp.Tau.Bytes())
 	retBytes.Write(rp.Th.Bytes())
-	if len(rp.Th.Bytes()) != 32 {
-		fmt.Printf("Tau %v\n", rp.Th.Sign())
-	}
+
 	retBytes.Write(rp.Mu.Bytes())
 
 	// now for the IPP bytes
@@ -254,7 +252,6 @@ func (rp *RangeProof) Serialize() (string, error) {
 	if err != nil {
 		return "", err
 	} else {
-		fmt.Printf("The length of the range proof is %v\n", len(serialMp))
 		return base58.Encode(serialMp), nil
 	}
 }

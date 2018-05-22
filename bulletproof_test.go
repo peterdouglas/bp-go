@@ -424,11 +424,9 @@ func TestRPVerifyTransWithReceiverConf(t *testing.T) {
 	rpBytes := rp.Bytes()
 	fmt.Printf("Byte length is %v\n", len(rpBytes))
 	serRP, _ := rp.Serialize()
-	//strT := GetRPTrytes(serRP)
 	fmt.Printf("The length of the serialized range proof in bytes is %v\n", len([]byte(serRP)))
 	rpb := &RangeProof{}
 
-	fmt.Printf("%v\nThe length of the proof in Trytes is %v\n", serRP, len(serRP))
 	rpb.Rebuild(serRP)
 	if RPVerifyTrans(&comm1.Comm, rpb) {
 		fmt.Println("Range Proof Verification works")
