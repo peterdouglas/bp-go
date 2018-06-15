@@ -527,7 +527,7 @@ func TestRangeProofMax(t *testing.T) {
 	for i := 1; i <= 128; i ++ {
 		EC = NewECPrimeGroupKey(i)
 		maxVal := new(big.Int).Exp(big.NewInt(2), big.NewInt(int64(EC.V)), EC.N)
-		//fmt.Printf("The max val for %v is %v\n", i, maxVal)
+		fmt.Printf("The max val for %v is %v\n", i, maxVal)
 		if maxVal.Cmp(big.NewInt(1779530283000000)) >= 1 {
 			fmt.Printf("The mimimum is %v\n", i)
 			break;
